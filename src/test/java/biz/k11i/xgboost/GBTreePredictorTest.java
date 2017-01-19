@@ -1,7 +1,9 @@
 package biz.k11i.xgboost;
 
 import biz.k11i.xgboost.learner.ObjFunction;
+import biz.k11i.xgboost.tree.RegTree;
 import biz.k11i.xgboost.util.FVec;
+
 import org.junit.After;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.FromDataPoints;
@@ -74,26 +76,31 @@ public class GBTreePredictorTest extends PredictorTest {
         verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf", new PredictorFunction<int[]>() {
             @Override
             public int[] predict(FVec feat) {
-              int[] leafIndicies = predictor.predictLeaf(feat);
-              for(int i = 0; i < leafIndicies.length; i++)
-              {
-                leafIndicies[i] = leafIndicies[i]/4;
-              }
-              return leafIndicies;
+                return adjustAddressByBlockSize(predictor.predictLeaf(feat));
             }
         });
 
         verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf_ntree", new PredictorFunction<int[]>() {
             @Override
             public int[] predict(FVec feat) {
-              int[] leafIndicies = predictor.predictLeaf(feat, 2);
-              for(int i = 0; i < leafIndicies.length; i++)
-              {
-                leafIndicies[i] = leafIndicies[i]/4;
-              }
-              return leafIndicies;
+              return adjustAddressByBlockSize(predictor.predictLeaf(feat, 2));
             }
         });
+    }
+
+  /**
+   * Since we have modified the node layout, the addresses of the
+   * nodes would be (original index)*BLOCK_SIZE.
+   * To match the test case expectations we divide by the block size.
+   * @param leafIndicies Array of leaf indices
+   * @return Array of leaf indices divided by block size
+   */
+    public int [] adjustAddressByBlockSize(int[] leafIndicies){
+        for(int i = 0; i < leafIndicies.length; i++)
+        {
+            leafIndicies[i] = leafIndicies[i]/ RegTree.BLOCK_SIZE;
+        }
+        return leafIndicies;
     }
 
     @After

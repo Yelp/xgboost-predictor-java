@@ -37,7 +37,7 @@ public class RegTree implements Serializable {
   private Param param;
   private int[] nodes;
   private RTreeNodeStat[] stats;
-  private final int BLOCK_SIZE = 4;
+  public static final int BLOCK_SIZE = 4;
 
   /**
    * Loads model from stream.
