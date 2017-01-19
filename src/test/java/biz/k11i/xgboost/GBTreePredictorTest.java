@@ -37,7 +37,6 @@ public class GBTreePredictorTest extends PredictorTest {
             boolean useJafama) throws IOException {
 
         ObjFunction.useFastMathExp(useJafama);
-
         String path = "model/" + MODEL_TYPE + "/" + modelNameWithVersion(version, modelName) + ".model";
         final Predictor predictor = newPredictor(path);
 
@@ -80,7 +79,6 @@ public class GBTreePredictorTest extends PredictorTest {
               {
                 leafIndicies[i] = leafIndicies[i]/4;
               }
-
               return leafIndicies;
             }
         });
