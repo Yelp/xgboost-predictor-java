@@ -40,7 +40,7 @@ public class GBTreePredictorTest extends PredictorTest {
 
         String path = "model/" + MODEL_TYPE + "/" + modelNameWithVersion(version, modelName) + ".model";
         final Predictor predictor = newPredictor(path);
-/*
+
         verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict", new PredictorFunction<double[]>() {
             @Override
             public double[] predict(FVec feat) {
@@ -71,18 +71,29 @@ public class GBTreePredictorTest extends PredictorTest {
                 }
             });
         }
-*/
+
         verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf", new PredictorFunction<int[]>() {
             @Override
             public int[] predict(FVec feat) {
-                return predictor.predictLeaf(feat);
+              int[] leafIndicies = predictor.predictLeaf(feat);
+              for(int i = 0; i < leafIndicies.length; i++)
+              {
+                leafIndicies[i] = leafIndicies[i]/4;
+              }
+
+              return leafIndicies;
             }
         });
 
         verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf_ntree", new PredictorFunction<int[]>() {
             @Override
             public int[] predict(FVec feat) {
-                return predictor.predictLeaf(feat, 2);
+              int[] leafIndicies = predictor.predictLeaf(feat, 2);
+              for(int i = 0; i < leafIndicies.length; i++)
+              {
+                leafIndicies[i] = leafIndicies[i]/4;
+              }
+              return leafIndicies;
             }
         });
     }
