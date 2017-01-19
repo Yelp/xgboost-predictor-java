@@ -96,8 +96,7 @@ public class GBTreePredictorTest extends PredictorTest {
    * @return Array of leaf indices divided by block size
    */
     public int [] adjustAddressByBlockSize(int[] leafIndicies){
-        for(int i = 0; i < leafIndicies.length; i++)
-        {
+        for(int i = 0; i < leafIndicies.length; i++) {
             leafIndicies[i] = leafIndicies[i]/ RegTree.BLOCK_SIZE;
         }
         return leafIndicies;
