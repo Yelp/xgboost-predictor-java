@@ -8,11 +8,36 @@ import java.io.Serializable;
 
 /**
  * Regression tree.
+ *
+ * Memory block model.
+ *
+ * A node is composed of 4 blocks of ints.
+ *
+ *  Block 1
+ *  ________________________________________
+ * | Split condition / Leaf Value (32 bits) |
+ *  ----------------------------------------
+ *  Block 2
+ *  _____________________________________________________________
+ * | Left Child Address (16-bits) | Right Child Address (16-bits)|
+ *  -------------------------------------------------------------
+ *  Block 3
+ *  _________________________
+ * | Feature Index (32 bits) |
+ *  -------------------------
+ *  Block 4
+ *  ___________________________________________________
+ * | Is Leaf (1-bit) | Default (left or right) (1-bit) |
+ *  ---------------------------------------------------
+ *
+ *
+ *
  */
 public class RegTree implements Serializable {
   private Param param;
   private int[] nodes;
   private RTreeNodeStat[] stats;
+  private final int BLOCK_SIZE = 4;
 
   /**
    * Loads model from stream.
@@ -23,9 +48,12 @@ public class RegTree implements Serializable {
   public void loadModel(ModelReader reader) throws IOException {
     param = new Param(reader);
 
-    nodes = new int[4 * param.num_nodes];
-    for (int i = 0; i < 4 * param.num_nodes; i += 4) {
+    nodes = new int[BLOCK_SIZE * param.num_nodes];
+    for (int i = 0; i < BLOCK_SIZE * param.num_nodes; i += BLOCK_SIZE) {
       Node node = new Node(reader);
+      /**
+       * Store node attributes in contiguous memory. Use Bit masks to store and read attributes.
+       */
       nodes[i] = createNodeValue(node);
       nodes[i + 1] = createNodeChildren(node);
       nodes[i + 2] = node.split_index();
@@ -53,12 +81,12 @@ public class RegTree implements Serializable {
 
   public int createNodeLeafDefault(Node nodeObj) {
     if (nodeObj._isLeaf) {
-      return 2;
+      return 2; //Binary code 10
     }
     if (nodeObj.default_left()) {
-      return 1;
+      return 1; // Binary code 01
     }
-    return 0;
+    return 0; //Binary code 00. Impossible to be a leaf node and have a default. 11 impossible.
   }
 
 
@@ -70,8 +98,9 @@ public class RegTree implements Serializable {
       }
       return ((nodes[index + 1] & 0xffff) << 2);
     }
-    return (fvalue < Float.intBitsToFloat(nodes[index])) ? (((nodes[index + 1] >>> 16) & 0xffff)
-        << 2)
+    // Since the the node is of size 4, we multiply the address by 4 by left shifting by 2.
+    return (fvalue < Float.intBitsToFloat(nodes[index])) ?
+        (((nodes[index + 1] >>> 16) & 0xffff) << 2)
         : ((nodes[index + 1] & 0xffff) << 2);
   }
 
@@ -84,6 +113,7 @@ public class RegTree implements Serializable {
    */
   public int getLeafIndex(FVec feat, int root_id) {
     int pid = root_id;
+    // Loop till leaf node is reached.
     while (nodes[pid  + 3] != 2 ) {
       pid = getNextNode(pid, feat);
     }
@@ -99,6 +129,7 @@ public class RegTree implements Serializable {
    * @return leaf value
    */
   public double getLeafValue(FVec feat, int root_id) {
+    // Loop till leaf node is reached.
     while (nodes[root_id  + 3] != 2) {
       root_id = getNextNode(root_id, feat);
     }
