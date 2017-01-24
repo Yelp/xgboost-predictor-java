@@ -40,6 +40,7 @@ public class RegTree implements Serializable {
   public static final int DEFAULT_MASK = 0x40000000;
   public static final int SPLIT_MASK = 0x3fffffff;
   public static final int QUAD_WORD = 0xffff;
+  public static final int QUAD_WORD_SIZE = 16;
 
   /**
    * Loads model from stream.
@@ -79,7 +80,7 @@ public class RegTree implements Serializable {
     if (nodeObj.cright_ > 0 && (nodeObj.cright_ & ~QUAD_WORD) > 0) {
       throw new IOException(
           "The height of the tree cannot exceed " +
-              ((int)(Math.log(QUAD_WORD) / Math.log(2)) + 1)+"::" + nodeObj.cright_);
+              ((int) (Math.log(QUAD_WORD) / Math.log(2)) + 1) + "::" + nodeObj.cright_);
     }
     int children = (nodeObj.cright_ & QUAD_WORD);
     children = children | ((nodeObj.cleft_ & QUAD_WORD) << 16);
@@ -101,23 +102,42 @@ public class RegTree implements Serializable {
 
 
   public int getNextNode(int index, FVec feat) {
-    double fvalue = feat.fvalue(nodes[index + 2] & SPLIT_MASK);
-
+    double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
     /* Check for NaN. IEEE Floating Point specifies that exp should be all 1s
      * and mantissa should not be all 0s.
      */
-    if ((Double.doubleToLongBits(fvalue) & 0x7fffffffffffffffL)
-        > 0x7ff0000000000000L) {
-      if ((nodes[index + 2] & DEFAULT_MASK) > 0) {
+    if(Double.isNaN(fvalue)){
+      if (isDefaultLeft(nodes[index + 2])) {
         // We multiply by BLOCK_SIZE because we use BLOCK_SIZE int mem blocks node.
-        return (((nodes[index + 1] >>> 16) & QUAD_WORD) * BLOCK_SIZE);
+        return getLeftChild(nodes[index + 1]);
       }
-      return ((nodes[index + 1] & QUAD_WORD) * BLOCK_SIZE);
+      return getRightChild(nodes[index + 1]);
     }
-    // We multiply by 3 because we use 3 int mem blocks for each node.
+    // We multiply by BLOCK_SIZE because we use BLOCK_SIZE int mem blocks for each node.
     return (fvalue < Float.intBitsToFloat(nodes[index])) ?
-        (((nodes[index + 1] >>> 16) & QUAD_WORD) * BLOCK_SIZE)
-        : ((nodes[index + 1] & QUAD_WORD) * BLOCK_SIZE);
+        getLeftChild(nodes[index + 1])
+        : getRightChild(nodes[index + 1]);
+  }
+
+  public static final int getLeftChild(int node) {
+    return (((node >>> QUAD_WORD_SIZE) & QUAD_WORD) * BLOCK_SIZE);
+  }
+
+  public static final int getRightChild(int node) {
+    return ((node & QUAD_WORD) * BLOCK_SIZE);
+  }
+
+  public static final int getFeatureIndex(int node) {
+    return node & SPLIT_MASK;
+  }
+
+  public static final boolean isDefaultLeft(int node) {
+    return (node & DEFAULT_MASK) > 0;
+  }
+
+
+  public static final boolean isNotLeaf(int node) {
+    return (node & LEAF_MASK) == 0;
   }
 
   /**
@@ -130,7 +150,7 @@ public class RegTree implements Serializable {
   public int getLeafIndex(FVec feat, int root_id) {
     int pid = root_id;
     // Loop till leaf node is reached.
-    while ((nodes[pid + 2] & LEAF_MASK) == 0) {
+    while (isNotLeaf(nodes[pid + 2])) {
       pid = getNextNode(pid, feat);
     }
 
@@ -146,7 +166,7 @@ public class RegTree implements Serializable {
    */
   public double getLeafValue(FVec feat, int root_id) {
     // Loop till leaf node is reached.
-    while ((nodes[root_id + 2] & LEAF_MASK) == 0) {
+    while (isNotLeaf(nodes[root_id + 2])) {
       root_id = getNextNode(root_id, feat);
     }
 

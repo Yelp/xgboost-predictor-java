@@ -30,7 +30,7 @@ public class RegTreeTest {
   }
 
   @Test
-  public void createNodeLeafDefaultAndValueLeafTest() throws IOException {
+  public void createNodeLeafDefaultAndValueLeafTest() {
     RegTree.Node node = mock(RegTree.Node.class);
     node._isLeaf = true;
     when(node.split_index()).thenReturn(0x5);
@@ -40,7 +40,7 @@ public class RegTreeTest {
   }
 
   @Test
-  public void createNodeLeafDefaultAndValueNonLeafTest() throws IOException {
+  public void createNodeLeafDefaultAndValueNonLeafTest() {
     RegTree.Node node = mock(RegTree.Node.class);
     node._isLeaf = false;
     when(node.default_left()).thenReturn(true);
@@ -49,11 +49,48 @@ public class RegTreeTest {
   }
 
   @Test
-  public void createNodeLeafDefaultAndValueNonLeafTest() throws IOException {
-    RegTree.Node node = mock(RegTree.Node.class);
-    node._isLeaf = false;
-    when(node.default_left()).thenReturn(true);
-    int nodeValue = regTree.createNodeLeafDefaultAndValue(node);
-    assertEquals(nodeValue & RegTree.DEFAULT_MASK, RegTree.DEFAULT_MASK);
+  public void getLeftChildTest() {
+    int node = 0xffff0000;
+    assertEquals(RegTree.getLeftChild(node), 0xffff * 3);
+    node = 0xffffaaaa;
+    assertEquals(RegTree.getLeftChild(node), 0xffff * 3);
+    node = 0xafffaaaa;
+    assertEquals(RegTree.getLeftChild(node), 0xafff * 3);
+  }
+
+
+  @Test
+  public void getRightChildTest() {
+    int node = 0xffff0000;
+    assertEquals(RegTree.getRightChild(node), 0);
+    node = 0xffffaaaa;
+    assertEquals(RegTree.getRightChild(node), 0xaaaa * 3);
+    node = 0x0000aaa1;
+    assertEquals(RegTree.getRightChild(node), 0xaaa1 * 3);
+  }
+
+
+  @Test
+  public void getFeatureIndexTest() {
+    int node = 0x3fff0000;
+    assertEquals(RegTree.getFeatureIndex(node), 0x3fff0000);
+    node = 0xffffaaaa;
+    assertEquals(RegTree.getFeatureIndex(node), 0x3fffaaaa);
+    node = 0x0000000a;
+    assertEquals(RegTree.getFeatureIndex(node), 0xa);
+  }
+
+
+  @Test
+  public void getDefaultAndLeafTest() {
+    int node = 0x3fff0000;
+    assertEquals(RegTree.isDefaultLeft(node), false);
+    assertEquals(RegTree.isNotLeaf(node), true);
+    node = 0xffffaaaa;
+    assertEquals(RegTree.isDefaultLeft(node), true);
+    assertEquals(RegTree.isNotLeaf(node), false);
+    node = 0xafffaaaa;
+    assertEquals(RegTree.isDefaultLeft(node), false);
+    assertEquals(RegTree.isNotLeaf(node), false);
   }
 }
