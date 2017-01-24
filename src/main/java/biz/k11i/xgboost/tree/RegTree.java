@@ -103,9 +103,7 @@ public class RegTree implements Serializable {
 
   public int getNextNode(int index, FVec feat) {
     double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
-    /* Check for NaN. IEEE Floating Point specifies that exp should be all 1s
-     * and mantissa should not be all 0s.
-     */
+
     if(Double.isNaN(fvalue)){
       if (isDefaultLeft(nodes[index + 2])) {
         // We multiply by BLOCK_SIZE because we use BLOCK_SIZE int mem blocks node.
@@ -207,6 +205,10 @@ public class RegTree implements Serializable {
     }
   }
 
+  /**
+   * Stores attributes of a tree node.
+   * Later it is transformed to int[] array.
+   */
   public static class Node implements Serializable {
     // pointer to parent, highest bit is used to
     // indicate whether it's a left child or not
