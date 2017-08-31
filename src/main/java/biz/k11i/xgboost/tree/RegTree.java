@@ -14,33 +14,28 @@ import java.io.Serializable;
  * A node is composed of 3 blocks of ints.
  *
  * Block 1
- * ________________________________________
+ * ------------------------------------------
  * | Split condition / Leaf Value (32 bits) |
- * ----------------------------------------
+ * ------------------------------------------
  * Block 2
- * _____________________________________________________________
- * | Left Child Address (16-bits) | Right Child Address (16-bits)|
- * -------------------------------------------------------------
+ * -----------------------------------------------------
+ * | Left Child Address (32 bits; 0  iff node is leaf) |
+ * -----------------------------------------------------
  * Block 3
- * _____________________________________________________________________________
- * | Is Leaf (1-bit) | Default (left or right) (1-bit) | Feature Index (30 bits) |
- * -----------------------------------------------------------------------------
+ * -------------------------------------------------------------
+ * | Feature Index (31 bits) | Default (left or right) (1-bit) |
+ * -------------------------------------------------------------
  *
  * Design Limitations:
- * - A tree of height has 2^n -1 nodes. Since we allocate 16 bits for a child address, the height
- * cannot exceed 16.
- * - Feature index is allocated 30 bits. This implementation can only support 2^30 features.
+ * - A complete tree of height has 2^n -1 nodes. Since we allocate 32 bits for a child address, the
+ * height cannot exceed 32 for a complete tree.
+ * - Feature index is allocated 31 bits. This implementation can only support 2^31 features.
  */
 public class RegTree implements Serializable {
   private Param param;
   private int[] nodes;
   private RTreeNodeStat[] stats;
   public static final int BLOCK_SIZE = 3;
-  public static final int LEAF_MASK = 0x80000000;
-  public static final int DEFAULT_MASK = 0x40000000;
-  public static final int SPLIT_MASK = 0x3fffffff;
-  public static final int QUAD_WORD = 0xffff;
-  public static final int QUAD_WORD_SIZE = 16;
 
   /**
    * Loads model from stream.
@@ -54,12 +49,12 @@ public class RegTree implements Serializable {
     nodes = new int[BLOCK_SIZE * param.num_nodes];
     for (int i = 0; i < BLOCK_SIZE * param.num_nodes; i += BLOCK_SIZE) {
       Node node = new Node(reader);
-      /**
+      /*
        * Store node attributes in contiguous memory. Use Bit masks to store and read attributes.
        */
       nodes[i] = createNodeValue(node);
       nodes[i + 1] = createNodeChildren(node);
-      nodes[i + 2] = createNodeLeafDefaultAndValue(node);
+      nodes[i + 2] = createNodeDefaultAndValue(node);
     }
 
     stats = new RTreeNodeStat[param.num_nodes];
@@ -76,66 +71,52 @@ public class RegTree implements Serializable {
   }
 
   public int createNodeChildren(Node nodeObj) throws IOException {
-    // Leaf nodes had cright_ and cleft_is as -1
-    if (nodeObj.cright_ > 0 && (nodeObj.cright_ & ~QUAD_WORD) > 0) {
-      throw new IOException(
-          "The height of the tree cannot exceed " +
-              ((int) (Math.log(QUAD_WORD) / Math.log(2)) + 1) + "::" + nodeObj.cright_);
+    if (nodeObj.is_leaf()) {
+      return 0;
+    } else {
+      return nodeObj.cleft_ * BLOCK_SIZE;
     }
-    int children = (nodeObj.cright_ & QUAD_WORD);
-    children = children | ((nodeObj.cleft_ & QUAD_WORD) << 16);
-    return children;
   }
 
 
-  public int createNodeLeafDefaultAndValue(Node nodeObj) {
-    int memBlock = nodeObj.split_index();
-    memBlock = memBlock & SPLIT_MASK;
-    if (nodeObj._isLeaf) {
-      memBlock = memBlock | LEAF_MASK; // Set left-most bit to 1
-    }
-    if (nodeObj.default_left()) {
-      memBlock = memBlock | DEFAULT_MASK; //Set second most bit to 1
-    }
-    return memBlock;
+  public int createNodeDefaultAndValue(Node nodeObj) {
+    return (nodeObj.split_index() << 1) | (nodeObj.default_left() ? 1 : 0);
   }
 
 
   public int getNextNode(int index, FVec feat) {
-    double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
+    Double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
+    int child = nodes[index + 1];
 
-    if(Double.isNaN(fvalue)){
-      if (isDefaultLeft(nodes[index + 2])) {
-        // We multiply by BLOCK_SIZE because we use BLOCK_SIZE int mem blocks node.
-        return getLeftChild(nodes[index + 1]);
-      }
-      return getRightChild(nodes[index + 1]);
+    if (fvalue == null) {
+      return child + BLOCK_SIZE * (nodes[index + 2] & 1);
     }
-    // We multiply by BLOCK_SIZE because we use BLOCK_SIZE int mem blocks for each node.
-    return (fvalue < Float.intBitsToFloat(nodes[index])) ?
-        getLeftChild(nodes[index + 1])
-        : getRightChild(nodes[index + 1]);
+
+    if (fvalue < Float.intBitsToFloat(nodes[index])) {
+      return child;
+    } else {
+      return child + BLOCK_SIZE;
+    }
   }
 
   public static final int getLeftChild(int node) {
-    return (((node >>> QUAD_WORD_SIZE) & QUAD_WORD) * BLOCK_SIZE);
+    return node;
   }
 
   public static final int getRightChild(int node) {
-    return ((node & QUAD_WORD) * BLOCK_SIZE);
+    return node + BLOCK_SIZE;
   }
 
   public static final int getFeatureIndex(int node) {
-    return node & SPLIT_MASK;
+    return node >>> 1;
   }
 
   public static final boolean isDefaultLeft(int node) {
-    return (node & DEFAULT_MASK) > 0;
+    return (node & 1) == 1;
   }
 
-
   public static final boolean isNotLeaf(int node) {
-    return (node & LEAF_MASK) == 0;
+    return node != 0;
   }
 
   /**
@@ -148,7 +129,7 @@ public class RegTree implements Serializable {
   public int getLeafIndex(FVec feat, int root_id) {
     int pid = root_id;
     // Loop till leaf node is reached.
-    while (isNotLeaf(nodes[pid + 2])) {
+    while (isNotLeaf(nodes[pid + 1])) {
       pid = getNextNode(pid, feat);
     }
 
@@ -164,7 +145,7 @@ public class RegTree implements Serializable {
    */
   public double getLeafValue(FVec feat, int root_id) {
     // Loop till leaf node is reached.
-    while (isNotLeaf(nodes[root_id + 2])) {
+    while (isNotLeaf(nodes[root_id + 1])) {
       root_id = getNextNode(root_id, feat);
     }
 
@@ -262,8 +243,8 @@ public class RegTree implements Serializable {
     }
 
     int next(FVec feat) {
-      double fvalue = feat.fvalue(_splitIndex);
-      if (fvalue != fvalue) {  // is NaN?
+      Double fvalue = feat.fvalue(_splitIndex);
+      if (fvalue == null) {
         return _defaultNext;
       }
       return (fvalue < split_cond) ? cleft_ : cright_;

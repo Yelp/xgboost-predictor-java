@@ -36,7 +36,7 @@ public abstract class PredictorTest {
 
             String line;
             while ((line = reader.readLine()) != null) {
-                Map<Integer, Float> feat = new HashMap<>();
+                Map<Integer, Double> feat = new HashMap<>();
 
                 for (String val : line.split("\\s")) {
                     if (!val.contains(":")) {
@@ -44,7 +44,7 @@ public abstract class PredictorTest {
                     }
 
                     String[] pair = val.split(":");
-                    feat.put(Integer.parseInt(pair[0]), Float.parseFloat(pair[1]));
+                    feat.put(Integer.parseInt(pair[0]), new Double(pair[1]));
                 }
 
                 result.add(FVec.Transformer.fromMap(feat));

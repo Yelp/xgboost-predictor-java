@@ -13,7 +13,7 @@ public interface FVec extends Serializable {
      * @param index index
      * @return value
      */
-    double fvalue(int index);
+    Double fvalue(int index);
 
     class Transformer {
         private Transformer() {
@@ -48,27 +48,22 @@ public interface FVec extends Serializable {
          * @param map map containing non-zero values
          * @return FVec
          */
-        public static FVec fromMap(Map<Integer, ? extends Number> map) {
+        public static FVec fromMap(Map<Integer, Double> map) {
             return new FVecMapImpl(map);
         }
     }
 }
 
 class FVecMapImpl implements FVec {
-    private final Map<Integer, ? extends Number> values;
+    private final Map<Integer, Double> values;
 
-    FVecMapImpl(Map<Integer, ? extends Number> values) {
+    FVecMapImpl(Map<Integer, Double> values) {
         this.values = values;
     }
 
     @Override
-    public double fvalue(int index) {
-        Number number = values.get(index);
-        if (number == null) {
-            return Double.NaN;
-        }
-
-        return number.doubleValue();
+    public Double fvalue(int index) {
+        return values.get(index);
     }
 }
 
@@ -83,12 +78,12 @@ class FVecArrayImpl {
         }
 
         @Override
-        public double fvalue(int index) {
+        public Double fvalue(int index) {
             if (values.length <= index) {
                 return Double.NaN;
             }
 
-            double result = values[index];
+            Double result = (double) values[index];
             if (treatsZeroAsNA && result == 0) {
                 return Double.NaN;
             }
@@ -107,17 +102,17 @@ class FVecArrayImpl {
         }
 
         @Override
-        public double fvalue(int index) {
+        public Double fvalue(int index) {
             if (values.length <= index) {
                 return Double.NaN;
             }
 
-            double result = values[index];
+            Double result = values[index];
             if (treatsZeroAsNA && result == 0) {
                 return Double.NaN;
             }
 
-            return values[index];
+            return result;
         }
     }
 }
