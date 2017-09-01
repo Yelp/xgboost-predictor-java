@@ -44,7 +44,7 @@ public abstract class PredictorTest {
                     }
 
                     String[] pair = val.split(":");
-                    feat.put(Integer.parseInt(pair[0]), new Double(pair[1]));
+                    feat.put(Integer.valueOf(pair[0]), Double.valueOf(pair[1]));
                 }
 
                 result.add(FVec.Transformer.fromMap(feat));
