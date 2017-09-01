@@ -48,7 +48,7 @@ public interface FVec extends Serializable {
          * @param map map containing non-zero values
          * @return FVec
          */
-        public static FVec fromMap(Map<Integer, Double> map) {
+        public static FVec fromMap(Map<Integer, ? extends Number> map) {
             return new FVecMapImpl(map);
         }
     }
