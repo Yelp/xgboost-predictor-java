@@ -85,7 +85,7 @@ public class RegTree implements Serializable {
 
 
   public int getNextNode(int index, FVec feat) {
-    Double fvalue = feat.fvalue(nodes[index + 2] >>> 1);
+    Double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
     int child = nodes[index + 1];
 
     if (fvalue == null) {
@@ -112,7 +112,7 @@ public class RegTree implements Serializable {
   }
 
   public static final boolean isDefaultLeft(int node) {
-    return (node & 0x1) == 0;
+    return (node & 1) == 0;
   }
 
   public static final boolean isNotLeaf(int node) {
@@ -145,17 +145,8 @@ public class RegTree implements Serializable {
    */
   public double getLeafValue(FVec feat, int root_id) {
     // Loop till leaf node is reached.
-    while (nodes[root_id + 1] != 0) {
-      Double fvalue = feat.fvalue(nodes[root_id + 2] >>> 1);
-      int child = nodes[root_id + 1];
-
-      if (fvalue == null) {
-        root_id = child + BLOCK_SIZE * (nodes[root_id + 2] & 0x1);
-      } else if (fvalue < Float.intBitsToFloat(nodes[root_id])) {
-        root_id = child;
-      } else {
-        root_id = child + BLOCK_SIZE;
-      }
+    while (isNotLeaf(nodes[root_id + 1])) {
+      root_id = getNextNode(root_id, feat);
     }
 
     return Float.intBitsToFloat(nodes[root_id]);
