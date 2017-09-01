@@ -22,9 +22,9 @@ import java.io.Serializable;
  * | Left Child Address (32 bits; 0  iff node is leaf) |
  * -----------------------------------------------------
  * Block 3
- * -------------------------------------------------------------
- * | Feature Index (31 bits) | Default (left or right) (1-bit) |
- * -------------------------------------------------------------
+ * ------------------------------------------------------
+ * | Feature Index (31 bits) | Default is right (1-bit) |
+ * ------------------------------------------------------
  *
  * Design Limitations:
  * - A complete tree of height has 2^n -1 nodes. Since we allocate 32 bits for a child address, the
@@ -80,12 +80,12 @@ public class RegTree implements Serializable {
 
 
   public int createNodeDefaultAndValue(Node nodeObj) {
-    return (nodeObj.split_index() << 1) | (nodeObj.default_left() ? 1 : 0);
+    return (nodeObj.split_index() << 1) | (nodeObj.default_left() ? 0 : 1);
   }
 
 
   public int getNextNode(int index, FVec feat) {
-    Double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
+    Double fvalue = feat.fvalue(nodes[index + 2] >>> 1);
     int child = nodes[index + 1];
 
     if (fvalue == null) {
@@ -112,7 +112,7 @@ public class RegTree implements Serializable {
   }
 
   public static final boolean isDefaultLeft(int node) {
-    return (node & 1) == 1;
+    return (node & 0x1) == 0;
   }
 
   public static final boolean isNotLeaf(int node) {
@@ -145,8 +145,17 @@ public class RegTree implements Serializable {
    */
   public double getLeafValue(FVec feat, int root_id) {
     // Loop till leaf node is reached.
-    while (isNotLeaf(nodes[root_id + 1])) {
-      root_id = getNextNode(root_id, feat);
+    while (nodes[root_id + 1] != 0) {
+      Double fvalue = feat.fvalue(nodes[root_id + 2] >>> 1);
+      int child = nodes[root_id + 1];
+
+      if (fvalue == null) {
+        root_id = child + BLOCK_SIZE * (nodes[root_id + 2] & 0x1);
+      } else if (fvalue < Float.intBitsToFloat(nodes[root_id])) {
+        root_id = child;
+      } else {
+        root_id = child + BLOCK_SIZE;
+      }
     }
 
     return Float.intBitsToFloat(nodes[root_id]);
