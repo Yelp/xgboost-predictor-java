@@ -46,11 +46,11 @@ public class GBLinear extends GBBase {
 
     double pred(FVec feat, int gid) {
         double psum = bias(gid);
-        Double featValue;
+        Number featValue;
         for (int fid = 0; fid < mparam.num_feature; ++fid) {
             featValue = feat.fvalue(fid);
             if (featValue != null) {
-                psum += featValue * weight(fid, gid);
+                psum += featValue.doubleValue() * weight(fid, gid);
             }
         }
         return psum;

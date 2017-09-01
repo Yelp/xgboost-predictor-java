@@ -13,7 +13,7 @@ public interface FVec extends Serializable {
      * @param index index
      * @return value
      */
-    Double fvalue(int index);
+    Number fvalue(int index);
 
     class Transformer {
         private Transformer() {
@@ -55,14 +55,14 @@ public interface FVec extends Serializable {
 }
 
 class FVecMapImpl implements FVec {
-    private final Map<Integer, Double> values;
+    private final Map<Integer, ? extends Number> values;
 
-    FVecMapImpl(Map<Integer, Double> values) {
+    FVecMapImpl(Map<Integer, ? extends Number> values) {
         this.values = values;
     }
 
     @Override
-    public Double fvalue(int index) {
+    public Number fvalue(int index) {
         return values.get(index);
     }
 }

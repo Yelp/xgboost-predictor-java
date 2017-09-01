@@ -85,17 +85,16 @@ public class RegTree implements Serializable {
 
 
   public int getNextNode(int index, FVec feat) {
-    Double fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
-    int child = nodes[index + 1];
+    Number fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
 
-    if (fvalue == null) {
-      return child + BLOCK_SIZE * (nodes[index + 2] & 1);
+    if (null == fvalue) {
+      return nodes[index + 1] + BLOCK_SIZE * (nodes[index + 2] & 1);
     }
 
-    if (fvalue < Float.intBitsToFloat(nodes[index])) {
-      return child;
+    if (fvalue.doubleValue() < Float.intBitsToFloat(nodes[index])) {
+      return nodes[index + 1];
     } else {
-      return child + BLOCK_SIZE;
+      return nodes[index + 1] + BLOCK_SIZE;
     }
   }
 
@@ -243,11 +242,11 @@ public class RegTree implements Serializable {
     }
 
     int next(FVec feat) {
-      Double fvalue = feat.fvalue(_splitIndex);
+      Number fvalue = feat.fvalue(_splitIndex);
       if (fvalue == null) {
         return _defaultNext;
       }
-      return (fvalue < split_cond) ? cleft_ : cright_;
+      return (fvalue.doubleValue() < split_cond) ? cleft_ : cright_;
     }
   }
 
