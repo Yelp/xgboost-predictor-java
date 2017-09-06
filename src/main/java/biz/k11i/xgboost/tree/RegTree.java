@@ -11,25 +11,25 @@ import java.io.Serializable;
  *
  * Memory block model.
  *
- * A node is composed of 3 blocks of ints.
+ * A node is composed of 3 blocks of ints:
  *
- * Block 1
- * ------------------------------------------
- * | Split condition / Leaf Value (32 bits) |
- * ------------------------------------------
- * Block 2
- * -----------------------------------------------------
- * | Left Child Address (32 bits; 0  iff node is leaf) |
- * -----------------------------------------------------
- * Block 3
- * ------------------------------------------------------
- * | Feature Index (31 bits) | Default is right (1-bit) |
- * ------------------------------------------------------
+ *   ------------------------------------------------------
+ * 1 |       Split condition / Leaf Value (32 bits)       |
+ *   ------------------------------------------------------
+ * 2 | Left Child Address (32 bits; 0  iff node is leaf)  |
+ *   ------------------------------------------------------
+ * 3 | Feature Index (31 bits) | Default is right (1-bit) |
+ *   ------------------------------------------------------
  *
  * Design Limitations:
- * - A complete tree of height has 2^n -1 nodes. Since we allocate 32 bits for a child address, the
- * height cannot exceed 32 for a complete tree.
+ * - Since we allocate a full int for the left child address, the restriction on tree size is JVM
+ * specific but always < Integer.MAX_VALUE. Therefore, a complete tree can never exceed depth 31.
+ * Hypothetically we will never reach this limit. Because of this, the left child address field
+ * is pre-multiplied by BLOCK_SIZE to reduce future computation.
+ *
  * - Feature index is allocated 31 bits. This implementation can only support 2^31 features.
+ * Unlike with node indexes, we use longs for our sparse feature maps and therefore could
+ * possibly support ~2.1 billion features.
  */
 public class RegTree implements Serializable {
   private Param param;
@@ -88,7 +88,11 @@ public class RegTree implements Serializable {
     Number fvalue = feat.fvalue(getFeatureIndex(nodes[index + 2]));
 
     if (null == fvalue) {
-      return nodes[index + 1] + BLOCK_SIZE * (nodes[index + 2] & 1);
+      if (isDefaultLeft(nodes[index + 2])) {
+        return nodes[index + 1];
+      } else {
+        return nodes[index + 1] + BLOCK_SIZE;
+      }
     }
 
     if (fvalue.doubleValue() < Float.intBitsToFloat(nodes[index])) {
