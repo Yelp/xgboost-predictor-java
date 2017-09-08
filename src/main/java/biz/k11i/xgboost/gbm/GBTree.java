@@ -64,7 +64,7 @@ public class GBTree extends GBBase {
     public double[] predict(FVec feat, int ntree_limit) {
         double[] preds = new double[mparam.num_output_group];
         for (int gid = 0; gid < mparam.num_output_group; gid++) {
-            preds[gid] = pred(feat, gid, 0, ntree_limit);
+            preds[gid] = pred(feat, gid, ntree_limit);
         }
         return preds;
     }
@@ -76,16 +76,16 @@ public class GBTree extends GBBase {
                     "Can't invoke predictSingle() because this model outputs multiple values: "
                     + mparam.num_output_group);
         }
-        return pred(feat, 0, 0, ntree_limit);
+        return pred(feat,  0, ntree_limit);
     }
 
-    double pred(FVec feat, int bst_group, int root_index, int ntree_limit) {
+    double pred(FVec feat, int bst_group, int ntree_limit) {
         RegTree[] trees = _groupTrees[bst_group];
         int treeleft = ntree_limit == 0 ? trees.length : ntree_limit;
 
         double psum = 0;
         for (int i = 0; i < treeleft; i++) {
-            psum += trees[i].getLeafValue(feat, root_index);
+            psum += trees[i].getLeafValue(feat);
         }
 
         return psum;
@@ -93,16 +93,16 @@ public class GBTree extends GBBase {
 
     @Override
     public int[] predictLeaf(FVec feat, int ntree_limit) {
-        return predPath(feat, 0, ntree_limit);
+        return predPath(feat, ntree_limit);
     }
 
 
-    int[] predPath(FVec feat, int root_index, int ntree_limit) {
+    int[] predPath(FVec feat, int ntree_limit) {
         int treeleft = ntree_limit == 0 ? trees.length : ntree_limit;
 
         int[] leafIndex = new int[treeleft];
         for (int i = 0; i < treeleft; i++) {
-            leafIndex[i] = trees[i].getLeafIndex(feat, root_index);
+            leafIndex[i] = trees[i].getLeafIndex(feat);
         }
         return leafIndex;
     }
