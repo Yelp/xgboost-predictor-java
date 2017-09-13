@@ -6,6 +6,10 @@ import java.io.Serializable;
 import biz.k11i.xgboost.util.FVec;
 import biz.k11i.xgboost.util.ModelReader;
 
+/**
+ * Provides basic interface and common functionality for a binary decision tree to be loaded and
+ * evaluated.
+ */
 abstract public class AbstractRegTree implements Serializable {
   /**
    * Loads the model from a provided ModelReader
@@ -28,20 +32,38 @@ abstract public class AbstractRegTree implements Serializable {
 
   protected abstract int getNextNode(int node, FVec feat);
 
-  protected abstract boolean isNotLeaf(int node);
+  protected abstract boolean isLeafNode(int node);
 
   protected abstract double getLeafValue(int node);
 
+  /**
+   * Returns the leaf node index for the given fvec starting at the tree's root
+   * @param feat feature vector to evaluate tree on
+   * @return leaf node index
+   */
   public final int getLeafIndex(FVec feat) {
-    int node = getRootNode();
+    return getLeafIndex(feat, getRootNode());
+  }
 
-    while (isNotLeaf(node)) {
+  /**
+   * Returns the leaf node index for the given fvec starting at the provided node
+   * @param feat feature vector to test tree on
+   * @param node first node considered for evaluation
+   * @return leaf node index
+   */
+  public final int getLeafIndex(FVec feat, int node) {
+    while (!isLeafNode(node)) {
       node = getNextNode(node, feat);
     }
 
     return node;
   }
 
+  /**
+   * Returns the leaf node value for the given fvec starting at the tree's root
+   * @param feat feature vector to evaluate tree on
+   * @return leaf node index
+   */
   public final double getLeafValue(FVec feat) {
     return getLeafValue(getLeafIndex(feat));
   }

@@ -89,8 +89,8 @@ public class RegTree extends AbstractRegTree {
   }
 
   @Override
-  public boolean isNotLeaf(int node) {
-    return nodes[node + 1] != 0;
+  public boolean isLeafNode(int node) {
+    return nodes[node + 1] == 0;
   }
 
   public static int getLeftChild(int node) {

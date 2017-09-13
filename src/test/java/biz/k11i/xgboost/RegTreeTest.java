@@ -62,15 +62,15 @@ public class RegTreeTest {
     regTree.nodes = new int[]{0, 0x3fff0000, 0, 0xffffaaab, 0, 0xafffaaaa, 0, 0};
     int node = 0x3fff0000;
     assertEquals(RegTree.isDefaultLeft(node), true);
-    assertEquals(regTree.isNotLeaf(0), true);
+    assertEquals(regTree.isLeafNode(0), true);
     node = 0xffffaaab;
     assertEquals(RegTree.isDefaultLeft(node), false);
-    assertEquals(regTree.isNotLeaf(2), true);
+    assertEquals(regTree.isLeafNode(2), true);
     node = 0xafffaaaa;
     assertEquals(RegTree.isDefaultLeft(node), true);
-    assertEquals(regTree.isNotLeaf(4), true);
+    assertEquals(regTree.isLeafNode(4), true);
     node = 0x0;
     assertEquals(RegTree.isDefaultLeft(node), true);
-    assertEquals(regTree.isNotLeaf(6), false);
+    assertEquals(regTree.isLeafNode(6), false);
   }
 }

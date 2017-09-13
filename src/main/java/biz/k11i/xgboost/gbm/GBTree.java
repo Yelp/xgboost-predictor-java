@@ -1,5 +1,6 @@
 package biz.k11i.xgboost.gbm;
 
+import biz.k11i.xgboost.tree.AbstractRegTree;
 import biz.k11i.xgboost.tree.RegTree;
 import biz.k11i.xgboost.util.FVec;
 import biz.k11i.xgboost.util.ModelReader;
@@ -15,7 +16,7 @@ public class GBTree extends GBBase {
     private RegTree[] trees;
     private int[] tree_info;
 
-    private RegTree[][] _groupTrees;
+    private AbstractRegTree[][] _groupTrees;
 
     GBTree() {
         // do nothing
@@ -80,7 +81,7 @@ public class GBTree extends GBBase {
     }
 
     double pred(FVec feat, int bst_group, int ntree_limit) {
-        RegTree[] trees = _groupTrees[bst_group];
+        AbstractRegTree[] trees = _groupTrees[bst_group];
         int treeleft = ntree_limit == 0 ? trees.length : ntree_limit;
 
         double psum = 0;

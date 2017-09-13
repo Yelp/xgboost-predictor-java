@@ -7,7 +7,7 @@ import java.util.Map;
 import biz.k11i.xgboost.util.FVec;
 
 /**
- * Regression tree.
+ * Repacked regression tree.
  *
  * Memory block model.
  *
@@ -122,8 +122,8 @@ public class RepackedRegTree extends AbstractRegTree {
   }
 
   @Override
-  protected boolean isNotLeaf(int node) {
-    return nodes[node + 1] != 0;
+  protected boolean isLeafNode(int node) {
+    return nodes[node + 1] == 0;
   }
 
   @Override
