@@ -72,20 +72,6 @@ public class GBTreePredictorTest extends PredictorTest {
                 }
             });
         }
-
-//        verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf", new PredictorFunction<int[]>() {
-//            @Override
-//            public int[] predict(FVec feat) {
-//                return adjustAddressByBlockSize(predictor.predictLeaf(feat));
-//            }
-//        });
-//
-//        verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf_ntree", new PredictorFunction<int[]>() {
-//            @Override
-//            public int[] predict(FVec feat) {
-//              return adjustAddressByBlockSize(predictor.predictLeaf(feat, 2));
-//            }
-//        });
     }
 
   /**

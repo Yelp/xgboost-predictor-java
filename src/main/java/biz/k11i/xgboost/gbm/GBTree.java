@@ -1,35 +1,42 @@
 package biz.k11i.xgboost.gbm;
 
 import biz.k11i.xgboost.tree.AbstractRegTree;
-import biz.k11i.xgboost.tree.RegTree;
+import biz.k11i.xgboost.tree.RepackedRegTree;
 import biz.k11i.xgboost.util.FVec;
 import biz.k11i.xgboost.util.ModelReader;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.function.Function;
 
 /**
  * Gradient boosted tree implementation.
  */
 public class GBTree extends GBBase {
     private ModelParam mparam;
-    private RegTree[] trees;
+    private AbstractRegTree[] trees;
     private int[] tree_info;
+    private Function<AbstractRegTree.Param, AbstractRegTree> treeCreationStrategy;
 
     private AbstractRegTree[][] _groupTrees;
 
-    GBTree() {
-        // do nothing
+    public GBTree() {
+        this(param -> new RepackedRegTree());
+    }
+
+    public GBTree(Function<AbstractRegTree.Param, AbstractRegTree> treeCreationStrategy) {
+        this.treeCreationStrategy = treeCreationStrategy;
     }
 
     @Override
     public void loadModel(ModelReader reader, boolean with_pbuffer) throws IOException {
         mparam = new ModelParam(reader);
 
-        trees = new RegTree[mparam.num_trees];
+        trees = new AbstractRegTree[mparam.num_trees];
         for (int i = 0; i < mparam.num_trees; i++) {
-            trees[i] = new RegTree();
-            trees[i].loadModel(reader);
+            AbstractRegTree.Param param = new AbstractRegTree.Param(reader);
+            trees[i] = this.treeCreationStrategy.apply(param);
+            trees[i].loadModel(param);
         }
 
         if (mparam.num_trees != 0) {
@@ -41,7 +48,7 @@ public class GBTree extends GBBase {
             reader.skip(4 * mparam.predBufferSize());
         }
 
-        _groupTrees = new RegTree[mparam.num_output_group][];
+        _groupTrees = new AbstractRegTree[mparam.num_output_group][];
         for (int i = 0; i < mparam.num_output_group; i++) {
             int treeCount = 0;
             for (int j = 0; j < tree_info.length; j++) {
@@ -50,7 +57,7 @@ public class GBTree extends GBBase {
                 }
             }
 
-            _groupTrees[i] = new RegTree[treeCount];
+            _groupTrees[i] = new AbstractRegTree[treeCount];
             treeCount = 0;
 
             for (int j = 0; j < tree_info.length; j++) {

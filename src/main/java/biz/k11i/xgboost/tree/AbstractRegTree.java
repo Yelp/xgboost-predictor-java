@@ -24,7 +24,7 @@ abstract public class AbstractRegTree implements Serializable {
    * Loads the model from a parameters instance
    * @param param
    */
-  abstract void loadModel(Param param);
+  public abstract void loadModel(Param param);
 
   protected int getRootNode() {
     return 0;
@@ -71,7 +71,7 @@ abstract public class AbstractRegTree implements Serializable {
   /**
    * Parameters.
    */
-  public class Param implements Serializable {
+  public static class Param implements Serializable {
     /*! \brief number of start root */
     final int num_roots;
     /*! \brief total number of nodes */
@@ -92,7 +92,7 @@ abstract public class AbstractRegTree implements Serializable {
 
     final Node[] nodeInfo;
 
-    Param(ModelReader reader) throws IOException {
+    public Param(ModelReader reader) throws IOException {
       num_roots = reader.readInt();
       num_nodes = reader.readInt();
       num_deleted = reader.readInt();
@@ -118,7 +118,7 @@ abstract public class AbstractRegTree implements Serializable {
    * Stores attributes of a tree node.
    * Later it is transformed to int[] array.
    */
-  public class Node implements Serializable {
+  public static class Node implements Serializable {
     final int id;
     // pointer to parent, highest bit is used to
     // indicate whether it's a left child or not
