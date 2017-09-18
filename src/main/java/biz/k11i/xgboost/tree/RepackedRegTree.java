@@ -7,11 +7,8 @@ import java.util.Map;
 import biz.k11i.xgboost.util.FVec;
 
 /**
- * Repacked regression tree.
- *
- * Memory block model.
- *
- * A node is composed of 3 blocks of ints:
+ * Memory-compact and cache efficient implementation of a regression tree. The tree is stored as
+ * an int array where each node is represented as a block of 3 ints:
  *
  *   ------------------------------------------------------
  * 1 |       Split condition / Leaf Value (32 bits)       |
@@ -20,6 +17,15 @@ import biz.k11i.xgboost.util.FVec;
  *   ------------------------------------------------------
  * 3 | Feature Index (31 bits) | Default is right (1 bit) |
  *   ------------------------------------------------------
+ *
+ * Trees output by XGboost have their nodes indexed as if by breadth first traversal, leading to
+ * child nodes being increasingly far in memory from the parent node. Using each node's cover of
+ * the training data, we repack the tree with depth first pre-order in order of which child has the
+ * greatest cover. This effectively guarantees that at any point in tree traversal, the most
+ * common path is immediately adjacent in memory and reached as the if rather than the else
+ * during getNextNode, encouraging accurate branch prediction and memory prefetch/cache
+ * effectiveness. In practice, this implementation is several times faster than an array packed
+ * implementation indexed breadth first.
  *
  * Design Specifics / Limitations:
  * - XGBoost trees are indexed breadth-first from the root with the left child always immediately
@@ -103,6 +109,7 @@ public class RepackedRegTree extends AbstractRegTree {
   protected int getNextNode(int index, FVec feat) {
     Number fvalue = feat.fvalue(nodes[index + 2] >>> 1);
 
+    // Todo: look into changing `getNextNode` into `getNextNodeOffset` for potential perf gain
     if (null == fvalue) {
       if ((nodes[index + 2] & 1) == 0) {
         return index + BLOCK_SIZE;
@@ -115,8 +122,15 @@ public class RepackedRegTree extends AbstractRegTree {
         (fvalue.doubleValue() < Float.intBitsToFloat(nodes[index])) !=
             ((nodes[index + 1] & 0x1) == 1)
         ) {
+      /*
+       * This conditional is effectively a boolean rather than bitwise Xor between the node's
+       * branch condition and whether the "no is left" bit is set. If only one is true, either we
+       * are taking the 'yes' branch and the 'yes' branch is left or we are taking the 'no'
+       * branch and the 'no' branch is left, so we can just increment the pointer by BLOCK_SIZE.
+       */
       return index + BLOCK_SIZE;
     } else {
+      // Otherwise, increment by the stored child offset
       return index + (nodes[index + 1] >>> 1);
     }
   }
