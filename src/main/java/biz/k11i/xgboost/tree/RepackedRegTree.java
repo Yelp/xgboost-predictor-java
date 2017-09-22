@@ -10,22 +10,29 @@ import biz.k11i.xgboost.util.FVec;
  * Memory-compact and cache efficient implementation of a regression tree. The tree is stored as
  * an int array where each node is represented as a block of 3 ints:
  *
- *   ------------------------------------------------------
- * 1 |       Split condition / Leaf Value (32 bits)       |
- *   ------------------------------------------------------
- * 2 |  Right Child Offset (31 bits) | No is left (1 bit) | (Zero iff node is leaf)
- *   ------------------------------------------------------
- * 3 | Feature Index (31 bits) | Default is right (1 bit) |
- *   ------------------------------------------------------
+ *   --------------------------------------------------------
+ * 1 |        Split condition / Leaf Value (32 bits)        |
+ *   --------------------------------------------------------
+ * 2 | Right Child Offset (31 bits) | False is left (1 bit) | (Zero iff node is leaf)
+ *   --------------------------------------------------------
+ * 3 |  Feature Index (31 bits) | Default is right (1 bit)  |
+ *   --------------------------------------------------------
+ *
+ * Notes on terms:
+ *  - The "left child" is considered the child immediately next in the node array
+ *  - The "right child" is packed some unknown length after the parent in the node array
+ *  - In the loaded XGboost tree, "left" is considered the case where the condition at the node
+ *    is found to be true
  *
  * Trees output by XGboost have their nodes indexed as if by breadth first traversal, leading to
  * child nodes being increasingly far in memory from the parent node. Using each node's cover of
- * the training data, we repack the tree with depth first pre-order in order of which child has the
- * greatest cover. This effectively guarantees that at any point in tree traversal, the most
- * common path is immediately adjacent in memory and reached as the if rather than the else
- * during getNextNode, encouraging accurate branch prediction and memory prefetch/cache
- * effectiveness. In practice, this implementation is several times faster than an array packed
- * implementation indexed breadth first.
+ * the training data, we repack the tree with depth first pre-order in order of which child node
+ * saw the most training data. Assuming that the distribution of training data is roughly the
+ * same as the distribution seen online, this effectively guarantees that at any point in tree
+ * traversal the most common path is immediately adjacent in memory and reached as the if rather
+ * than the else during getNextNode, encouraging accurate branch prediction and memory
+ * prefetch/cache effectiveness. In practice, this implementation is several times faster than an
+ * array packed implementation indexed breadth first.
  *
  * Design Specifics / Limitations:
  * - XGBoost trees are indexed breadth-first from the root with the left child always immediately
@@ -79,6 +86,8 @@ public class RepackedRegTree extends AbstractRegTree {
         // Note: stores a 1 in right child offset as a placeholder to distinguish from a the 0x0
         // stored by a leaf in the case that the original left is still left.
         if (left.sum_hess > right.sum_hess) {
+          // Note: since this uses a stack, the child added second (in this case the left child)
+          // has its entire subtree expanded before the other child
           stack.addLast(right);
           stack.addLast(left);
           nodes[i + 1] = 0b10;
@@ -98,9 +107,14 @@ public class RepackedRegTree extends AbstractRegTree {
       if (!node.is_leaf()) {
         int parentId = newIndexMap.get(node.id);
 
+        // Gets the original ID for the less common child by reading the bit set during the
+        // earlier depth first iteration of the tree and then gets the new ID for that child
         int distantChildId = (nodes[parentId + 1] & 0x1) == 0 ? node.cright_: node.cleft_;
         int newChildId = newIndexMap.get(distantChildId);
-        nodes[parentId + 1] = ((newChildId - parentId) << 1) ^ (nodes[parentId + 1] & 0x1);
+
+        // Stores the offset to the less common child in the upper 31 bits while preserving the
+        // bit determining which outcome of the leaf condition is more common
+        nodes[parentId + 1] = ((newChildId - parentId) << 1) | (nodes[parentId + 1] & 0x1);
       }
     }
   }
