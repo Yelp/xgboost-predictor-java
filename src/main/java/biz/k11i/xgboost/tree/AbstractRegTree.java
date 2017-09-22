@@ -135,7 +135,7 @@ abstract public class AbstractRegTree implements Serializable {
     public int _splitIndex;
     public boolean _isLeaf;
 
-    /*! \brief loss chg caused by current split */
+    /*! \brief loss change caused by current split */
     float loss_chg;
     /*! \brief sum of hessian values, used to measure coverage of data */
     float sum_hess;
