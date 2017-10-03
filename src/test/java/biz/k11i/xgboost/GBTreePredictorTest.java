@@ -1,8 +1,6 @@
 package biz.k11i.xgboost;
 
 import biz.k11i.xgboost.learner.ObjFunction;
-import biz.k11i.xgboost.tree.RegTree;
-import biz.k11i.xgboost.util.FVec;
 
 import org.junit.After;
 import org.junit.experimental.theories.DataPoints;
@@ -42,50 +40,26 @@ public class GBTreePredictorTest extends PredictorTest {
         String path = "model/" + MODEL_TYPE + "/" + modelNameWithVersion(version, modelName) + ".model";
         final Predictor predictor = newPredictor(path);
 
-        verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict", new PredictorFunction<double[]>() {
-            @Override
-            public double[] predict(FVec feat) {
-                return predictor.predict(feat);
-            }
-        });
+        verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict",
+            predictor::predict);
 
-        verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict_ntree", new PredictorFunction<double[]>() {
-            @Override
-            public double[] predict(FVec feat) {
-                return predictor.predict(feat, false, 1);
-            }
-        });
+        verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict_ntree",
+            feat -> predictor.predict(feat, false, 1));
 
-        verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "margin", new PredictorFunction<double[]>() {
-            @Override
-            public double[] predict(FVec feat) {
-                return predictor.predict(feat, true);
-            }
-        });
+        verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "margin",
+            feat -> predictor.predict(feat, true));
 
         if (modelName.startsWith("binary-")) {
             // test predictSingle()
-            verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict", new PredictorFunction<double[]>() {
-                @Override
-                public double[] predict(FVec feat) {
-                    return new double[] {predictor.predictSingle(feat)};
-                }
-            });
+            verifyDouble(MODEL_TYPE, modelNameWithVersion(version, modelName), "predict",
+                feat -> new double[] {predictor.predictSingle(feat)});
         }
-    }
 
-  /**
-   * Since we have modified the node layout, the addresses of the
-   * nodes would be (original index)*BLOCK_SIZE.
-   * To match the test case expectations we divide by the block size.
-   * @param leafIndicies Array of leaf indices
-   * @return Array of leaf indices divided by block size
-   */
-    public int [] adjustAddressByBlockSize(int[] leafIndicies){
-        for(int i = 0; i < leafIndicies.length; i++) {
-            leafIndicies[i] = leafIndicies[i]/ RegTree.BLOCK_SIZE;
-        }
-        return leafIndicies;
+        verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf",
+            predictor::predictLeaf);
+
+        verifyInt(MODEL_TYPE, modelNameWithVersion(version, modelName), "leaf_ntree",
+            feat -> predictor.predictLeaf(feat, 2));
     }
 
     @After

@@ -36,13 +36,15 @@ abstract public class AbstractRegTree implements Serializable {
 
   protected abstract double getLeafValue(int node);
 
+  protected abstract int getLeafIndex(int node);
+
   /**
    * Returns the leaf node index for the given fvec starting at the tree's root
    * @param feat feature vector to evaluate tree on
    * @return leaf node index
    */
   public final int getLeafIndex(FVec feat) {
-    return getLeafIndex(feat, getRootNode());
+    return getLeafIndex(getLeafNodeForFeat(feat, getRootNode()));
   }
 
   /**
@@ -51,7 +53,7 @@ abstract public class AbstractRegTree implements Serializable {
    * @param node first node considered for evaluation
    * @return leaf node index
    */
-  public final int getLeafIndex(FVec feat, int node) {
+  private int getLeafNodeForFeat(FVec feat, int node) {
     while (!isLeafNode(node)) {
       node = getNextNode(node, feat);
     }
@@ -65,7 +67,7 @@ abstract public class AbstractRegTree implements Serializable {
    * @return leaf node index
    */
   public final double getLeafValue(FVec feat) {
-    return getLeafValue(getLeafIndex(feat));
+    return getLeafValue(getLeafNodeForFeat(feat, getRootNode()));
   }
 
   /**

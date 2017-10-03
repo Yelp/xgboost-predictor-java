@@ -15,7 +15,7 @@ import biz.k11i.xgboost.util.FVec;
  *   --------------------------------------------------------
  * 2 | Right Child Offset (31 bits) | False is left (1 bit) | (Zero iff node is leaf)
  *   --------------------------------------------------------
- * 3 |  Feature Index (31 bits) | Default is right (1 bit)  |
+ * 3 |  Feature Index (31 bits) | Default is right (1 bit)  | (Original ID iff node is leaf)
  *   --------------------------------------------------------
  *
  * Notes on terms:
@@ -53,53 +53,58 @@ import biz.k11i.xgboost.util.FVec;
  * Unlike with node indexes, we use longs for our sparse feature vectors and therefore could
  * only possibly support ~2.1 billion features.
  */
-public class RepackedRegTree extends AbstractRegTree {
+public class PreorderRegTree extends AbstractRegTree {
   private static final int BLOCK_SIZE = 3;
 
   private int[] nodes;
 
   @Override
   public void loadModel(Param param) {
-    int i = 0;
+    int nodeOffset = 0;
     nodes = new int[BLOCK_SIZE * param.num_nodes];
 
-    ArrayDeque<Node> stack = new ArrayDeque<>();
+    ArrayDeque<Node> boundaryNodeStack = new ArrayDeque<>();
     Map<Integer, Integer> newIndexMap = new HashMap<>(param.num_nodes);
 
-    stack.add(param.nodeInfo[0]);
+    boundaryNodeStack.add(param.nodeInfo[0]);
 
     // Performs a depth-first iteration breaking ties by cover to add Nodes to the node int array
-    while (!stack.isEmpty()) {
-      Node current = stack.removeLast();
+    while (!boundaryNodeStack.isEmpty()) {
+      Node current = boundaryNodeStack.removeLast();
 
-      newIndexMap.put(current.id, i);
+      newIndexMap.put(current.id, nodeOffset);
 
-      nodes[i] = createNodeValue(current);
-      nodes[i + 2] = createNodeDefaultAndValue(current);
+      nodes[nodeOffset] = createNodeValue(current);
+      nodes[nodeOffset + 2] = createNodeDefaultAndValue(current);
 
       if (current.is_leaf()) {
-        nodes[i + 1] = 0x0;
+        nodes[nodeOffset + 1] = 0x0;
+        nodes[nodeOffset + 2] = current.id;
       } else {
         Node left = param.nodeInfo[current.cleft_];
         Node right = param.nodeInfo[current.cright_];
 
-        // Note: stores a 1 in right child offset as a placeholder to distinguish from a the 0x0
-        // stored by a leaf in the case that the original left is still left.
+        /*
+         * Note: stores a 1 in right child offset as a placeholder to distinguish from a the 0x0
+         * stored by a leaf in the case that the original left is still left.
+         */
         if (left.sum_hess > right.sum_hess) {
-          // Note: since this uses a stack, the child added second (in this case the left child)
-          // has its entire subtree expanded before the other child
-          stack.addLast(right);
-          stack.addLast(left);
-          nodes[i + 1] = 0b10;
+          /*
+           * Note: since this uses a stack, the child added second (in this case the left child)
+           * has its entire subtree expanded before the other child
+           */
+          boundaryNodeStack.addLast(right);
+          boundaryNodeStack.addLast(left);
+          nodes[nodeOffset + 1] = 0b10;
         } else {
-          stack.addLast(left);
-          stack.addLast(right);
-          nodes[i + 1] = 0b11;
-          nodes[i + 2] ^= 0x1; // Flips the default path since left/right have been flipped
+          boundaryNodeStack.addLast(left);
+          boundaryNodeStack.addLast(right);
+          nodes[nodeOffset + 1] = 0b11;
+          nodes[nodeOffset + 2] ^= 0x1; // Flips the default path since left/right have been flipped
         }
       }
 
-      i += BLOCK_SIZE;
+      nodeOffset += BLOCK_SIZE;
     }
 
     // Once all nodes have been added to the int array, update offsets to right children
@@ -107,13 +112,17 @@ public class RepackedRegTree extends AbstractRegTree {
       if (!node.is_leaf()) {
         int parentId = newIndexMap.get(node.id);
 
-        // Gets the original ID for the less common child by reading the bit set during the
-        // earlier depth first iteration of the tree and then gets the new ID for that child
+        /*
+         * Gets the original ID for the less common child by reading the bit set during the
+         * earlier depth first iteration of the tree and then gets the new ID for that child
+         */
         int distantChildId = (nodes[parentId + 1] & 0x1) == 0 ? node.cright_: node.cleft_;
         int newChildId = newIndexMap.get(distantChildId);
 
-        // Stores the offset to the less common child in the upper 31 bits while preserving the
-        // bit determining which outcome of the leaf condition is more common
+        /*
+         * Stores the offset to the less common child in the upper 31 bits while preserving the
+         * bit determining which outcome of the leaf condition is more common
+         */
         nodes[parentId + 1] = ((newChildId - parentId) << 1) | (nodes[parentId + 1] & 0x1);
       }
     }
@@ -157,6 +166,11 @@ public class RepackedRegTree extends AbstractRegTree {
   @Override
   protected double getLeafValue(int node) {
     return Float.intBitsToFloat(nodes[node]);
+  }
+
+  @Override
+  protected int getLeafIndex(int node) {
+    return nodes[node + 2];
   }
 
   private int createNodeValue(Node node) {

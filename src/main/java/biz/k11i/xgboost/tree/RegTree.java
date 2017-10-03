@@ -89,6 +89,11 @@ public class RegTree extends AbstractRegTree {
   }
 
   @Override
+  protected int getLeafIndex(int node) {
+    return node / BLOCK_SIZE;
+  }
+
+  @Override
   public boolean isLeafNode(int node) {
     return nodes[node + 1] == 0;
   }

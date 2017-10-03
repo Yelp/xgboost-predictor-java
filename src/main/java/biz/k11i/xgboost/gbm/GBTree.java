@@ -1,7 +1,7 @@
 package biz.k11i.xgboost.gbm;
 
 import biz.k11i.xgboost.tree.AbstractRegTree;
-import biz.k11i.xgboost.tree.RepackedRegTree;
+import biz.k11i.xgboost.tree.PreorderRegTree;
 import biz.k11i.xgboost.util.FVec;
 import biz.k11i.xgboost.util.ModelReader;
 
@@ -21,7 +21,7 @@ public class GBTree extends GBBase {
     private AbstractRegTree[][] _groupTrees;
 
     public GBTree() {
-        this(param -> new RepackedRegTree());
+        this(param -> new PreorderRegTree());
     }
 
     public GBTree(Function<AbstractRegTree.Param, AbstractRegTree> treeCreationStrategy) {
