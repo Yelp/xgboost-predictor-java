@@ -1,47 +1,7 @@
 xgboost-predictor-java
 ======================
 
-[![Build Status](https://travis-ci.org/komiya-atsushi/xgboost-predictor-java.svg?branch=master)](https://travis-ci.org/komiya-atsushi/xgboost-predictor-java)
-[![Download](https://api.bintray.com/packages/komiya-atsushi/maven/xgboost-predictor/images/download.svg) ](https://bintray.com/komiya-atsushi/maven/xgboost-predictor/_latestVersion)
-
-Pure Java implementation of [XGBoost](https://github.com/dmlc/xgboost/) predictor for online prediction tasks.
-
-
-# Getting started
-
-## Adding to dependencies
-
-If you use **Maven**:
-
-```xml
-<repositories>
-  <repository>
-    <id>bintray-komiya-atsushi-maven</id>
-    <url>http://dl.bintray.com/komiya-atsushi/maven</url>
-  </repository>
-</repository>
-
-<dependencies>
-  <dependency>
-    <groupId>biz.k11i</groupId>
-    <artifactId>xgboost-predictor</artifactId>
-    <version>0.1.7</version>
-  </dependency>
-</dependencies>
-```
-
-Or **Gradle**:
-
-```groovy
-repositories {
-    // Use jcenter instead of mavenCentral
-    jcenter()
-}
-
-dependencies {
-    compile group: 'biz.k11i', name: 'xgboost-predictor', version: '0.1.7'
-}
-```
+Pure Java implementation of [XGBoost](https://github.com/dmlc/xgboost/) predictor for online prediction tasks. This fork has been modified by the Ad Delivery team at Yelp to improve online prediction speeds. Be on the lookout for a few upcoming blog posts about our transition to xgboost!
 
 ## Using Predictor in Java
 
@@ -92,17 +52,7 @@ public class HowToUseXgboostPredictor {
 
 # Benchmark
 
-Throughput comparison to [xgboost4j 1.1](https://github.com/dmlc/xgboost/tree/master/java/xgboost4j) by [xgboost-predictor-benchmark](https://github.com/komiya-atsushi/xgboost-predictor-benchmark).
-
-| Feature           | xgboost-predictor | xgboost4j      |
-| ----------------- | ----------------: | -------------: |
-| Model loading     |    49017.60 ops/s | 39669.36 ops/s |
-| Single prediction |  6016955.46 ops/s |  1018.01 ops/s |
-| Batch prediction  |    44985.71 ops/s |     5.04 ops/s |
-| Leaf prediction   | 11115853.34 ops/s |  1076.54 ops/s |
-
-Xgboost-predictor-java is about **6,000 to 10,000 times faster than** xgboost4j on prediction tasks.
-
+Our improvements to cache efficiency and tree structure have resulted in more than doubling the online performance for our use case compared to the [the original project](https://github.com/komiya-atsushi/xgboost-predictor-java). There will be a post on [our engineering blog](https://engineeringblog.yelp.com/) soon about how we achieved this.
 
 # Supported models, objective functions and API
 
