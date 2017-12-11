@@ -1,7 +1,11 @@
 .PHONY: build clean test deploy
 
 export MVNFLAGS=-Djava.io.tmpdir=/nail/tmp
+ifeq (, $(shell which mvn3))
+export MAVEN := mvn
+else
 export MAVEN := mvn3
+endif
 export JAVA_HOME := /usr/lib/jvm/java-8-oracle-1.8.0.45
 
 clean:
