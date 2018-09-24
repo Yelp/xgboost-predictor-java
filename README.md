@@ -1,7 +1,14 @@
 xgboost-predictor-java
 ======================
 
-Pure Java implementation of [XGBoost](https://github.com/dmlc/xgboost/) predictor for online prediction tasks. This fork has been modified by the Ad Delivery team at Yelp to improve online prediction speeds. Be on the lookout for a few upcoming blog posts about our transition to xgboost!
+Pure Java implementation of [XGBoost](https://github.com/dmlc/xgboost/)
+predictor for online prediction tasks. This fork has been modified by the Ad
+Delivery team at Yelp to improve online prediction speeds.
+
+Check out our Yelp Engineering Blog post for more information about how we use
+this library in ([part 1](https://engineeringblog.yelp.com/2018/01/building-a-distributed-ml-pipeline-part1.html))
+and what modifications we made to the library to make it cache-friendly and
+greatly improve its performance and p50 latencies ([part 2](https://engineeringblog.yelp.com/2018/01/growing-cache-friendly-trees-part2.html)).
 
 ## Using Predictor in Java
 
@@ -52,7 +59,13 @@ public class HowToUseXgboostPredictor {
 
 # Benchmark
 
-Our improvements to cache efficiency and tree structure have resulted in more than doubling the online performance for our use case compared to the [the original project](https://github.com/komiya-atsushi/xgboost-predictor-java). There will be a post on [our engineering blog](https://engineeringblog.yelp.com/) soon about how we achieved this.
+Our improvements to cache efficiency and tree structure have resulted in more
+than doubling the online performance for our use case compared to the [the original project](https://github.com/komiya-atsushi/xgboost-predictor-java).
+
+Check out the [Yelp Engineering Blog post](https://engineeringblog.yelp.com/2018/01/growing-cache-friendly-trees-part2.html)
+with the latency benchmarks with the Yelp improvements:
+
+![Latency benchmarks](https://engineeringblog.yelp.com/images/posts/2018-01-12-growing-cache-friendly-trees-part2/mean_latency_reg_tree_prediction.png)
 
 # Supported models, objective functions and API
 
