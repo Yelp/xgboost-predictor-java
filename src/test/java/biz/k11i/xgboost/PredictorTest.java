@@ -2,6 +2,8 @@ package biz.k11i.xgboost;
 
 import biz.k11i.xgboost.util.FVec;
 
+import org.junit.Before;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,9 +19,11 @@ import static org.hamcrest.Matchers.is;
 
 public abstract class PredictorTest {
 
-    private static final List<FVec> TEST_DATA;
+    private List<FVec> TEST_DATA;
+    private String MODEL_DATA_PATH = "model/agaricus.txt.test";
 
-    static {
+    @Before
+    public void loadResources(){
         try {
             TEST_DATA = loadTestData();
         } catch (IOException e) {
@@ -27,8 +31,12 @@ public abstract class PredictorTest {
         }
     }
 
-    static List<FVec> loadTestData() throws IOException {
-        try (InputStream stream = PredictorTest.class.getResourceAsStream("model/agaricus.txt.test");
+    protected String getTestDataPath(){
+        return MODEL_DATA_PATH;
+    }
+
+    protected List<FVec> loadTestData() throws IOException {
+        try (InputStream stream = PredictorTest.class.getResourceAsStream(getTestDataPath());
              InputStreamReader isr = new InputStreamReader(stream);
              BufferedReader reader = new BufferedReader(isr)) {
 
@@ -94,7 +102,6 @@ public abstract class PredictorTest {
 
         for (int i = 0; i < TEST_DATA.size(); i++) {
             double[] predicted = function.predict(TEST_DATA.get(i));
-
             assertThat(
                     String.format("[%s.%s: %d] length", modelName, ext, i),
                     predicted.length,

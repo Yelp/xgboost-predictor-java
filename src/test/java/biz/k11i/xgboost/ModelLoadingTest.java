@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class ModelLoadingTest {
-    private static final String MODEL_PATH = "model/gbtree/v40/binary-logistic.model";
+    private static final String MODEL_PATH = "model/gbtree/v80/poisson.model";
 
     @Test
     public void testBuffered() throws IOException {

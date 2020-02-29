@@ -1,6 +1,6 @@
 .PHONY: build clean test deploy
 
-export MVNFLAGS=-Djava.io.tmpdir=/nail/tmp
+export MVNFLAGS=-Djava.io.tmpdir=/nail/tmp -DtrimStackTrace=false
 ifeq (, $(shell which mvn3))
 export MAVEN := mvn
 else
