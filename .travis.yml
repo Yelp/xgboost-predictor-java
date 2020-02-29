@@ -1,5 +1,5 @@
 language: java
-script: ./gradlew clean check
+script: mvn test
 jdk:
-  - oraclejdk7
-  - openjdk7
+  - oraclejdk8
+  - openjdk8
