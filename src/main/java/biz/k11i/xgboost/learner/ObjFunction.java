@@ -13,11 +13,16 @@ public class ObjFunction implements Serializable {
     private static final Map<String, ObjFunction> FUNCTIONS = new HashMap<>();
 
     static {
+        register("rank:pairwise", new ObjFunction());
+        register("rank:ndcg", new ObjFunction());
         register("binary:logistic", new RegLossObjLogistic());
+        register("reg:logistic", new RegLossObjLogistic());
         register("binary:logitraw", new ObjFunction());
         register("multi:softmax", new SoftmaxMultiClassObjClassify());
         register("multi:softprob", new SoftmaxMultiClassObjProb());
         register("reg:linear", new ObjFunction());
+        register("count:poisson", new RegLossObjExpFamily());
+        register("reg:tweedie", new RegLossObjExpFamily());
     }
 
     /**
@@ -54,10 +59,13 @@ public class ObjFunction implements Serializable {
         if (useJafama) {
             register("binary:logistic", new RegLossObjLogistic_Jafama());
             register("multi:softprob", new SoftmaxMultiClassObjProb_Jafama());
-
+            register("count:poisson", new RegLossObjExpFamily_Jafama());
+            register("reg:tweedie", new RegLossObjExpFamily_Jafama());
         } else {
             register("binary:logistic", new RegLossObjLogistic());
             register("multi:softprob", new SoftmaxMultiClassObjProb());
+            register("count:poisson", new RegLossObjExpFamily());
+            register("reg:tweedie", new RegLossObjExpFamily());
         }
     }
 
@@ -84,6 +92,34 @@ public class ObjFunction implements Serializable {
     }
 
     /**
+     * Objective functions that need exp transformation.
+     * E.g., poisson, gamma, tweedie
+     */
+    static class RegLossObjExpFamily extends ObjFunction {
+        @Override
+        public double[] predTransform(double[] preds) {
+            for (int i = 0; i < preds.length; i++) {
+                preds[i] = exp(preds[i]);
+            }
+            return preds;
+        }
+        @Override
+        public double predTransform(double pred) {
+            return exp(pred);
+        }
+        double exp(double x) {
+            return Math.exp(x);
+        }
+    }
+
+    static class RegLossObjExpFamily_Jafama extends RegLossObjExpFamily {
+        @Override
+        double exp(double x) {
+            return FastMath.exp(x);
+        }
+    }
+
+    /**
      * Logistic regression.
      */
     static class RegLossObjLogistic extends ObjFunction {
@@ -101,7 +137,7 @@ public class ObjFunction implements Serializable {
         }
 
         double sigmoid(double x) {
-            return (1 / (1 + Math.exp(-x)));
+            return (1.0f / (1.0f + (float)Math.exp(-((float)x))));
         }
     }
 
@@ -113,7 +149,7 @@ public class ObjFunction implements Serializable {
      */
     static class RegLossObjLogistic_Jafama extends RegLossObjLogistic {
         double sigmoid(double x) {
-            return (1 / (1 + FastMath.exp(-x)));
+            return (1.0f / (1.0f + (float)FastMath.exp(-((float)x))));
         }
     }
 

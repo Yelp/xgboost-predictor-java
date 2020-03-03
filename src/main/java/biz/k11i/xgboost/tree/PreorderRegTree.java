@@ -7,7 +7,6 @@ import java.util.Map;
 import biz.k11i.xgboost.util.FVec;
 
 /**
- * author: adamj, niloyg
  * Memory-compact and cache efficient implementation of a regression tree. The tree is stored as
  * an int array where each node is represented as a block of 3 ints:
  *

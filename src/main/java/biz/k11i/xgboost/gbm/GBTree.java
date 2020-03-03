@@ -91,7 +91,7 @@ public class GBTree extends GBBase {
         AbstractRegTree[] trees = _groupTrees[bst_group];
         int treeleft = ntree_limit == 0 ? trees.length : ntree_limit;
 
-        double psum = 0;
+        float psum = 0;
         for (int i = 0; i < treeleft; i++) {
             psum += trees[i].getLeafValue(feat);
         }

@@ -1,10 +1,15 @@
 package biz.k11i.xgboost.util;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Interface of feature vector.
+ *
+ * This class was modified from the open source version it was forked from
+ * to always store feature values as floats to resolve
+ * https://github.com/komiya-atsushi/xgboost-predictor-java/issues/21
  */
 public interface FVec extends Serializable {
     /**
@@ -13,7 +18,7 @@ public interface FVec extends Serializable {
      * @param index index
      * @return value
      */
-    Number fvalue(int index);
+    Float fvalue(int index);
 
     class Transformer {
         private Transformer() {
@@ -39,7 +44,12 @@ public interface FVec extends Serializable {
          * @return FVec
          */
         public static FVec fromArray(double[] values, boolean treatsZeroAsNA) {
-            return new FVecArrayImpl.FVecDoubleArrayImpl(values, treatsZeroAsNA);
+            float[] float_values = new float[values.length];
+            for (int i = 0; i < values.length; i++)
+            {
+                float_values[i] = (float) values[i];
+            }
+            return new FVecArrayImpl.FVecFloatArrayImpl(float_values, treatsZeroAsNA);
         }
 
         /**
@@ -49,70 +59,51 @@ public interface FVec extends Serializable {
          * @return FVec
          */
         public static FVec fromMap(Map<Integer, ? extends Number> map) {
-            return new FVecMapImpl(map);
+            Map<Integer, Float> floatMap = new HashMap<>();
+
+            for (Map.Entry<Integer, ? extends Number> indexAndValue: map.entrySet()) {
+                floatMap.put(indexAndValue.getKey(), indexAndValue.getValue().floatValue());
+            }
+            return new FVecMapImpl(floatMap);
         }
     }
-}
 
-class FVecMapImpl implements FVec {
-    private final Map<Integer, ? extends Number> values;
+    class FVecMapImpl implements FVec {
+        private final Map<Integer, ? extends Float> values;
 
-    FVecMapImpl(Map<Integer, ? extends Number> values) {
-        this.values = values;
-    }
-
-    @Override
-    public Number fvalue(int index) {
-        return values.get(index);
-    }
-}
-
-class FVecArrayImpl {
-    static class FVecFloatArrayImpl implements FVec {
-        private final float[] values;
-        private final boolean treatsZeroAsNA;
-
-        FVecFloatArrayImpl(float[] values, boolean treatsZeroAsNA) {
+        FVecMapImpl(Map<Integer, Float> values) {
             this.values = values;
-            this.treatsZeroAsNA = treatsZeroAsNA;
         }
 
         @Override
-        public Double fvalue(int index) {
-            if (values.length <= index) {
-                return Double.NaN;
-            }
-
-            Double result = (double) values[index];
-            if (treatsZeroAsNA && result == 0) {
-                return Double.NaN;
-            }
-
-            return result;
+        public Float fvalue(int index) {
+            return values.get(index);
         }
     }
 
-    static class FVecDoubleArrayImpl implements FVec {
-        private final double[] values;
-        private final boolean treatsZeroAsNA;
+    class FVecArrayImpl {
+        static class FVecFloatArrayImpl implements FVec {
+            private final float[] values;
+            private final boolean treatsZeroAsNA;
 
-        FVecDoubleArrayImpl(double[] values, boolean treatsZeroAsNA) {
-            this.values = values;
-            this.treatsZeroAsNA = treatsZeroAsNA;
-        }
-
-        @Override
-        public Double fvalue(int index) {
-            if (values.length <= index) {
-                return Double.NaN;
+            FVecFloatArrayImpl(float[] values, boolean treatsZeroAsNA) {
+                this.values = values;
+                this.treatsZeroAsNA = treatsZeroAsNA;
             }
 
-            Double result = values[index];
-            if (treatsZeroAsNA && result == 0) {
-                return Double.NaN;
-            }
+            @Override
+            public Float fvalue(int index) {
+                if (values.length <= index) {
+                    return Float.NaN;
+                }
 
-            return result;
+                Float result = values[index];
+                if (treatsZeroAsNA && result == 0) {
+                    return Float.NaN;
+                }
+
+                return result;
+            }
         }
     }
 }

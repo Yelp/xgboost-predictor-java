@@ -14,7 +14,7 @@ import java.io.IOException;
 @RunWith(Theories.class)
 public class GBTreePredictorTest extends PredictorTest {
 
-    private static final String MODEL_TYPE = "gbtree";
+    protected static final String MODEL_TYPE = "gbtree";
 
     @DataPoints("modelName")
     public static final String[] MODEL_NAMES = {

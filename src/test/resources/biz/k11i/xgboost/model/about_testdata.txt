@@ -4,3 +4,11 @@ for validation/testing purpose.
 Origin:
 Mushroom records drawn from The Audubon Society Field Guide to North American Mushrooms (1981). G. H. Lincoff (Pres.),
 New York: Alfred A. Knopf
+
+The 'agaricus.txt.test' file is used by the original developer of xgboost java predictor, in libsvm format.
+It was used in dmlc xgboost as an example dataset. But dmlc changed the libsvm format to start with
+1 index later. This file however still starts with 0 index.
+
+The 'agaricus_new.txt.test' file is the same as 'agaricus.txt.test' but starts with 1 index, simply
+downloaded from https://github.com/dmlc/xgboost/tree/master/demo/data
+(Latest commit 77d17f6  on Jul 6, 2016)
